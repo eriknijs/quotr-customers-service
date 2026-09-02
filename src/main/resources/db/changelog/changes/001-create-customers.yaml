@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-customers
+      author: ai-rigger
+      changes:
+        - createTable:
+            tableName: customers
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: owner_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(320)
+              - column:
+                  name: phone_number
+                  type: varchar(64)
+              - column:
+                  name: address_line1
+                  type: varchar(255)
+              - column:
+                  name: address_line2
+                  type: varchar(255)
+              - column:
+                  name: postal_code
+                  type: varchar(64)
+              - column:
+                  name: city
+                  type: varchar(128)
+              - column:
+                  name: country
+                  type: varchar(128)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_at
+                  type: timestamp with time zone
+        - createIndex:
+            tableName: customers
+            indexName: idx_customers_owner_active_name
+            columns:
+              - column:
+                  name: owner_id
+              - column:
+                  name: deleted_at
+              - column:
+                  name: name
+        - createIndex:
+            tableName: customers
+            indexName: idx_customers_owner_email
+            columns:
+              - column:
+                  name: owner_id
+              - column:
+                  name: email

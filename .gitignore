@@ -1,0 +1,43 @@
+# Build output
+/target/
+/out/
+/build/
+
+# Generated sources and downloaded contracts
+/generated/
+/generated-sources/
+/src/generated/
+/openapi/
+/contracts/
+*.openapi.json
+*.openapi.yaml
+
+# Test reports and coverage
+/surefire-reports/
+/failsafe-reports/
+/jacoco.exec
+/coverage/
+
+# Secrets and local runtime configuration
+.env
+.env.*
+!.env.example
+/application-local.yml
+/application-local.yaml
+/secrets/
+*.pem
+*.key
+*.p12
+*.jks
+
+# IDE metadata
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS metadata
+.DS_Store
+Thumbs.db
