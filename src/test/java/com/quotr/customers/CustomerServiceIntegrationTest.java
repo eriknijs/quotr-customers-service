@@ -131,6 +131,9 @@ class CustomerServiceIntegrationTest {
         assertThat(service.search("owner-a", "wind")).extracting(Customer::id).containsExactly(nameMatch.id());
         assertThat(service.search("owner-a", "CONTOSO")).extracting(Customer::id).containsExactly(emailMatch.id());
         assertThat(service.search("owner-a", "canal")).extracting(Customer::id).containsExactly(addressMatch.id());
+        assertThat(service.search("owner-a", "1010")).extracting(Customer::id).containsExactly(addressMatch.id());
+        assertThat(service.search("owner-a", "trecht")).extracting(Customer::id).containsExactly(addressMatch.id());
+        assertThat(service.search("owner-a", "nl")).extracting(Customer::id).containsExactly(addressMatch.id());
         assertThat(service.search("owner-a", "needle-phone")).extracting(Customer::id).doesNotContain(phoneOnly.id());
     }
 }

@@ -27,7 +27,9 @@ The service exposes only the generated Customer API surface from the published c
 - `PUT /api/v1/customers/{customerId}`
 - `DELETE /api/v1/customers/{customerId}` for soft-delete
 
-Search is partial and case-insensitive over active owned customer name, email, and address fields only. Phone-number search, CRM fields, quote linking, sharing, and hard-delete are intentionally not implemented.
+Search is partial and case-insensitive over active owned customer name, email, and address fields only. Address matching includes the stored street/address line exposed as `address.streetAddress`, `address.postalCode`, `address.city`, and `address.country` in the existing Customer API response. Phone-number search, CRM fields, quote linking, sharing, and hard-delete are intentionally not implemented.
+
+The existing authenticated `GET /api/v1/customers?q=...&page=...&size=...` contract is the Customer-side support point for quote worksite identity. A caller such as `quotr-quotes-service` must call this API with the end user's propagated JWT; the customers service then applies the same owner and soft-delete filtering as direct end-user calls. Results include each stable Customer `id` plus structured address fields, which is sufficient for quotes to match associated Customer identifiers and derive customer-backed quote address information without a customer-contract change or shared database access.
 
 ## Readiness and health
 
