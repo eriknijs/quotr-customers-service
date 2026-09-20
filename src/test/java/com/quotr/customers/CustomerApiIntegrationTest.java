@@ -58,8 +58,8 @@ class CustomerApiIntegrationTest {
         String owner = "11111111-1111-1111-1111-111111111111";
         String otherOwner = "22222222-2222-2222-2222-222222222222";
 
-        String customerId = createCustomer(owner, "Acme Ltd", "ops@acme.example", "Main Street 1", "Amsterdam");
-        createCustomer(otherOwner, "Other Owner", "other@example.com", "Hidden Street 9", "Rotterdam");
+        String customerId = createCustomer(owner, "Acme Ltd", "ops@acme.example", "Main Street 1", "1000 AA", "Amsterdam", "NL");
+        createCustomer(otherOwner, "Other Owner", "other@example.com", "Hidden Street 9", "3000 CC", "Rotterdam", "NL");
 
         mockMvc.perform(get("/api/v1/customers/{customerId}", customerId).with(jwt().jwt(jwt -> jwt.subject(owner))))
                 .andExpect(status().isOk())
@@ -105,6 +105,44 @@ class CustomerApiIntegrationTest {
     }
 
     @Test
+    void customerListSearchSuppliesOwnerScopedActiveAddressMatchesForDelegatedQuoteUse() throws Exception {
+        String owner = "33333333-3333-3333-3333-333333333333";
+        String otherOwner = "44444444-4444-4444-4444-444444444444";
+
+        String matchingCustomerId = createCustomer(
+                owner,
+                "Address Backed Worksite",
+                "worksite@example.com",
+                "Orchid Lane 42",
+                "ZX9 7QA",
+                "Silverton",
+                "Neverland");
+        createCustomer(
+                otherOwner,
+                "Other Owner Same Address",
+                "other-address@example.com",
+                "Orchid Lane 42",
+                "ZX9 7QA",
+                "Silverton",
+                "Neverland");
+        String deletedCustomerId = createCustomer(
+                owner,
+                "Deleted Address Backed Worksite",
+                "deleted-address@example.com",
+                "Deleted Orchid Lane 99",
+                "ZX9 7QA",
+                "Silverton",
+                "Neverland");
+        mockMvc.perform(delete("/api/v1/customers/{customerId}", deletedCustomerId).with(jwt().jwt(jwt -> jwt.subject(owner))))
+                .andExpect(status().isNoContent());
+
+        assertSingleAddressSearchMatch(owner, "oRcHiD", matchingCustomerId);
+        assertSingleAddressSearchMatch(owner, "zx9", matchingCustomerId);
+        assertSingleAddressSearchMatch(owner, "silver", matchingCustomerId);
+        assertSingleAddressSearchMatch(owner, "never", matchingCustomerId);
+    }
+
+    @Test
     void rejectsIncompleteAddressThroughApiValidation() throws Exception {
         mockMvc.perform(post("/api/v1/customers")
                         .with(jwt().jwt(jwt -> jwt.subject("11111111-1111-1111-1111-111111111111")))
@@ -119,7 +157,24 @@ class CustomerApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("CUSTOMER_VALIDATION_FAILED"));
     }
 
-    private String createCustomer(String owner, String name, String email, String streetAddress, String city) throws Exception {
+    private void assertSingleAddressSearchMatch(String owner, String query, String expectedCustomerId) throws Exception {
+        mockMvc.perform(get("/api/v1/customers")
+                        .param("q", query)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .with(jwt().jwt(jwt -> jwt.subject(owner))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customers", hasSize(1)))
+                .andExpect(jsonPath("$.customers[0].id").value(expectedCustomerId))
+                .andExpect(jsonPath("$.customers[0].address.streetAddress").value("Orchid Lane 42"))
+                .andExpect(jsonPath("$.customers[0].address.postalCode").value("ZX9 7QA"))
+                .andExpect(jsonPath("$.customers[0].address.city").value("Silverton"))
+                .andExpect(jsonPath("$.customers[0].address.country").value("Neverland"))
+                .andExpect(jsonPath("$.page.totalElements").value(1));
+    }
+
+    private String createCustomer(String owner, String name, String email, String streetAddress, String postalCode,
+                                  String city, String country) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/customers")
                         .with(jwt().jwt(jwt -> jwt.subject(owner)))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,9 +183,9 @@ class CustomerApiIntegrationTest {
                                   "name":"%s",
                                   "email":"%s",
                                   "phoneNumber":"+31 20 000 0000",
-                                  "address":{"streetAddress":"%s","postalCode":"1000 AA","city":"%s","country":"NL"}
+                                  "address":{"streetAddress":"%s","postalCode":"%s","city":"%s","country":"%s"}
                                 }
-                                """.formatted(name, email, streetAddress, city)))
+                                """.formatted(name, email, streetAddress, postalCode, city, country)))
                 .andExpect(status().isCreated())
                 .andReturn();
         return com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.id");
