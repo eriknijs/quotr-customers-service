@@ -1,0 +1,75 @@
+databaseChangeLog:
+  # ADR-0001: tenant_id/tenant_member_id are required, non-nullable columns. A database
+  # rejects adding a NOT NULL column with no default directly onto a non-empty table, so
+  # this is three separate changesets, in order: (1) add nullable, no default; (2) delete
+  # every pre-existing row, since it has no value for either column and there is no reliable
+  # way to re-derive a tenant for a row whose only identity was the old owner_id; (3) enforce
+  # NOT NULL, which now succeeds because no NULLs remain.
+  - changeSet:
+      id: 002-add-tenant-columns
+      author: ai-rigger
+      changes:
+        - addColumn:
+            tableName: customers
+            columns:
+              - column:
+                  name: tenant_id
+                  type: uuid
+              - column:
+                  name: tenant_member_id
+                  type: uuid
+
+  - changeSet:
+      id: 003-delete-pre-tenant-customers
+      author: ai-rigger
+      changes:
+        - sql:
+            sql: DELETE FROM customers WHERE tenant_id IS NULL
+
+  - changeSet:
+      id: 004-enforce-tenant-columns-not-null
+      author: ai-rigger
+      changes:
+        - addNotNullConstraint:
+            tableName: customers
+            columnName: tenant_id
+            columnDataType: uuid
+        - addNotNullConstraint:
+            tableName: customers
+            columnName: tenant_member_id
+            columnDataType: uuid
+
+  # owner_id is no longer read or written anywhere in the application -- entities are now
+  # keyed by tenant_id instead of the access-token user id (ADR-0001). Its indexes are
+  # replaced by tenant-scoped equivalents matching CustomerRepository's queries.
+  - changeSet:
+      id: 005-drop-owner-id
+      author: ai-rigger
+      changes:
+        - dropIndex:
+            tableName: customers
+            indexName: idx_customers_owner_active_name
+        - dropIndex:
+            tableName: customers
+            indexName: idx_customers_owner_email
+        - dropColumn:
+            tableName: customers
+            columnName: owner_id
+        - createIndex:
+            tableName: customers
+            indexName: idx_customers_tenant_active_name
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: deleted_at
+              - column:
+                  name: name
+        - createIndex:
+            tableName: customers
+            indexName: idx_customers_tenant_email
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: email

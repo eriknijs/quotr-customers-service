@@ -7,12 +7,10 @@ import com.quotr.customers.api.model.PageMetadata;
 import com.quotr.customers.domain.Address;
 import com.quotr.customers.domain.Customer;
 import com.quotr.customers.domain.CustomerChange;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -28,7 +26,12 @@ public interface CustomerTransportMapper {
     @Mapping(target = "addressLine2", ignore = true)
     Address toDomain(CustomerAddress address);
 
-    @Mapping(target = "ownerUserId", expression = "java(ownerUserId(customer.ownerId()))")
+    // The public contract field is still named ownerUserId (see quotr-customers-schema) --
+    // changing that is a separate, separately-versioned contract change this ADR does not
+    // require. Its value now comes from the tenant-membership id (ADR-0001), not the old
+    // access-token-derived pseudo-UUID: both are opaque UUIDs identifying "who" to a client,
+    // and the field was never documented as being derived from the bearer token specifically.
+    @Mapping(target = "ownerUserId", source = "tenantMemberId")
     com.quotr.customers.api.model.Customer toTransport(Customer customer);
 
     List<com.quotr.customers.api.model.Customer> toTransportList(List<Customer> customers);
@@ -54,16 +57,5 @@ public interface CustomerTransportMapper {
 
     default OffsetDateTime toOffsetDateTime(Instant instant) {
         return instant == null ? null : OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
-    }
-
-    default UUID ownerUserId(String ownerId) {
-        if (ownerId == null) {
-            return null;
-        }
-        try {
-            return UUID.fromString(ownerId);
-        } catch (IllegalArgumentException ignored) {
-            return UUID.nameUUIDFromBytes(ownerId.getBytes(StandardCharsets.UTF_8));
-        }
     }
 }

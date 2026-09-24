@@ -21,6 +21,10 @@ spring:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:}
 
+quotr:
+  tenant:
+    base-url: ${QUOTR_TENANT_BASE_URL:http://localhost:5004/api/v1}
+
 management:
   endpoints:
     web:

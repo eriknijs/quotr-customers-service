@@ -1,6 +1,7 @@
 package com.quotr.customers;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -10,12 +11,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.quotr.customers.persistence.CustomerRepository;
+import com.quotr.tenant.generated.api.TenantsApi;
+import com.quotr.tenant.generated.model.TenantDTO;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,13 +57,34 @@ class CustomerApiIntegrationTest {
     @Autowired
     CustomerRepository repository;
 
+    @MockBean
+    TenantsApi tenantsApi;
+
     @BeforeEach
     void cleanDatabase() {
         repository.deleteAll();
     }
 
+    @BeforeEach
+    void stubTenantResolutionFromTheCallersOwnBearerToken() {
+        // Every existing "owner" fixture is already a UUID-formatted JWT subject, so the
+        // member id can reuse it directly (keeping $.ownerUserId assertions unchanged); the
+        // tenant id is a distinct, deterministic derivation so two different subjects land in
+        // two different tenants, preserving this suite's existing isolation semantics.
+        when(tenantsApi.getTenant()).thenAnswer(invocation -> {
+            String subject = currentJwtSubject();
+            return new TenantDTO(UUID.fromString(subject))
+                    .tenantId(UUID.nameUUIDFromBytes(("tenant:" + subject).getBytes(StandardCharsets.UTF_8)));
+        });
+    }
+
+    private static String currentJwtSubject() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ((JwtAuthenticationToken) authentication).getToken().getSubject();
+    }
+
     @Test
-    void createListSearchUpdateAndSoftDeleteUseGeneratedContractSurfaceAndAuthenticatedOwner() throws Exception {
+    void createListSearchUpdateAndSoftDeleteUseGeneratedContractSurfaceAndResolvedTenant() throws Exception {
         String owner = "11111111-1111-1111-1111-111111111111";
         String otherOwner = "22222222-2222-2222-2222-222222222222";
 
@@ -105,7 +135,7 @@ class CustomerApiIntegrationTest {
     }
 
     @Test
-    void customerListSearchSuppliesOwnerScopedActiveAddressMatchesForDelegatedQuoteUse() throws Exception {
+    void customerListSearchSuppliesTenantScopedActiveAddressMatchesForDelegatedQuoteUse() throws Exception {
         String owner = "33333333-3333-3333-3333-333333333333";
         String otherOwner = "44444444-4444-4444-4444-444444444444";
 

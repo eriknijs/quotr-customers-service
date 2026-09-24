@@ -5,7 +5,8 @@ import java.util.UUID;
 
 public record Customer(
         UUID id,
-        String ownerId,
+        UUID tenantId,
+        UUID tenantMemberId,
         String name,
         String email,
         String phoneNumber,

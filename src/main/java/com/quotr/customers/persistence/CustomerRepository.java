@@ -11,15 +11,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> {
 
-    Optional<CustomerEntity> findByIdAndOwnerIdAndDeletedAtIsNull(UUID id, String ownerId);
+    Optional<CustomerEntity> findByIdAndTenantIdAndDeletedAtIsNull(UUID id, UUID tenantId);
 
-    List<CustomerEntity> findByOwnerIdAndDeletedAtIsNullOrderByNameAscCreatedAtAsc(String ownerId);
+    List<CustomerEntity> findByTenantIdAndDeletedAtIsNullOrderByNameAscCreatedAtAsc(UUID tenantId);
 
-    Page<CustomerEntity> findByOwnerIdAndDeletedAtIsNull(String ownerId, Pageable pageable);
+    Page<CustomerEntity> findByTenantIdAndDeletedAtIsNull(UUID tenantId, Pageable pageable);
 
     @Query("""
             select c from CustomerEntity c
-            where c.ownerId = :ownerId
+            where c.tenantId = :tenantId
               and c.deletedAt is null
               and (
                 lower(c.name) like lower(concat('%', :query, '%'))
@@ -32,11 +32,11 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> 
               )
             order by c.name asc, c.createdAt asc
             """)
-    List<CustomerEntity> searchActiveOwned(@Param("ownerId") String ownerId, @Param("query") String query);
+    List<CustomerEntity> searchActiveOwned(@Param("tenantId") UUID tenantId, @Param("query") String query);
 
     @Query("""
             select c from CustomerEntity c
-            where c.ownerId = :ownerId
+            where c.tenantId = :tenantId
               and c.deletedAt is null
               and (
                 lower(c.name) like lower(concat('%', :query, '%'))
@@ -48,7 +48,7 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> 
                 or lower(coalesce(c.country, '')) like lower(concat('%', :query, '%'))
               )
             """)
-    Page<CustomerEntity> searchActiveOwned(@Param("ownerId") String ownerId,
+    Page<CustomerEntity> searchActiveOwned(@Param("tenantId") UUID tenantId,
                                            @Param("query") String query,
                                            Pageable pageable);
 }

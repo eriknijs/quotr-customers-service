@@ -17,8 +17,14 @@ public class CustomerEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "owner_id", nullable = false, updatable = false, length = 255)
-    private String ownerId;
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    // Records the creating actor at insert and the most recent updating actor thereafter --
+    // the same "immutable created marker, mutable last-touched marker" shape createdAt/updatedAt
+    // already establish for timestamps (ADR-0001: "creating/updating actor").
+    @Column(name = "tenant_member_id", nullable = false)
+    private UUID tenantMemberId;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -70,8 +76,10 @@ public class CustomerEntity {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-    public String getOwnerId() { return ownerId; }
-    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+    public UUID getTenantId() { return tenantId; }
+    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
+    public UUID getTenantMemberId() { return tenantMemberId; }
+    public void setTenantMemberId(UUID tenantMemberId) { this.tenantMemberId = tenantMemberId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getEmail() { return email; }

@@ -10,6 +10,7 @@ import com.quotr.customers.persistence.CustomerEntity;
 import com.quotr.customers.persistence.CustomerRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,79 +30,83 @@ public class CustomerService {
     }
 
     @Transactional
-    public Customer create(String ownerId, CustomerChange change) {
+    public Customer create(UUID tenantId, UUID tenantMemberId, CustomerChange change) {
         validate(change);
         CustomerEntity entity = new CustomerEntity();
         entity.setId(UUID.randomUUID());
-        entity.setOwnerId(requireOwner(ownerId));
+        entity.setTenantId(requireTenant(tenantId));
+        entity.setTenantMemberId(requireTenantMember(tenantMemberId));
         apply(entity, change);
         return mapper.toDomain(repository.save(entity));
     }
 
     @Transactional(readOnly = true)
-    public Customer get(String ownerId, UUID customerId) {
-        return mapper.toDomain(findActiveOwned(ownerId, customerId));
+    public Customer get(UUID tenantId, UUID customerId) {
+        return mapper.toDomain(findActiveOwned(tenantId, customerId));
     }
 
     @Transactional(readOnly = true)
-    public List<Customer> list(String ownerId) {
-        return repository.findByOwnerIdAndDeletedAtIsNullOrderByNameAscCreatedAtAsc(requireOwner(ownerId))
+    public List<Customer> list(UUID tenantId) {
+        return repository.findByTenantIdAndDeletedAtIsNullOrderByNameAscCreatedAtAsc(requireTenant(tenantId))
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public Page<Customer> list(String ownerId, Pageable pageable) {
-        return repository.findByOwnerIdAndDeletedAtIsNull(requireOwner(ownerId), pageable)
+    public Page<Customer> list(UUID tenantId, Pageable pageable) {
+        return repository.findByTenantIdAndDeletedAtIsNull(requireTenant(tenantId), pageable)
                 .map(mapper::toDomain);
     }
 
     @Transactional(readOnly = true)
-    public List<Customer> search(String ownerId, String query) {
+    public List<Customer> search(UUID tenantId, String query) {
         if (!StringUtils.hasText(query)) {
-            return list(ownerId);
+            return list(tenantId);
         }
-        return repository.searchActiveOwned(requireOwner(ownerId), query.trim())
+        return repository.searchActiveOwned(requireTenant(tenantId), query.trim())
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public Page<Customer> listOrSearch(String ownerId, String query, Pageable pageable) {
+    public Page<Customer> listOrSearch(UUID tenantId, String query, Pageable pageable) {
         if (!StringUtils.hasText(query)) {
-            return list(ownerId, pageable);
+            return list(tenantId, pageable);
         }
-        return repository.searchActiveOwned(requireOwner(ownerId), query.trim(), pageable)
+        return repository.searchActiveOwned(requireTenant(tenantId), query.trim(), pageable)
                 .map(mapper::toDomain);
     }
 
     @Transactional
-    public Customer update(String ownerId, UUID customerId, CustomerChange change) {
+    public Customer update(UUID tenantId, UUID tenantMemberId, UUID customerId, CustomerChange change) {
         validate(change);
-        CustomerEntity entity = findActiveOwned(ownerId, customerId);
+        CustomerEntity entity = findActiveOwned(tenantId, customerId);
+        entity.setTenantMemberId(requireTenantMember(tenantMemberId));
         apply(entity, change);
         return mapper.toDomain(repository.save(entity));
     }
 
     @Transactional
-    public void softDelete(String ownerId, UUID customerId) {
-        CustomerEntity entity = findActiveOwned(ownerId, customerId);
+    public void softDelete(UUID tenantId, UUID tenantMemberId, UUID customerId) {
+        CustomerEntity entity = findActiveOwned(tenantId, customerId);
+        entity.setTenantMemberId(requireTenantMember(tenantMemberId));
         entity.setDeletedAt(Instant.now());
         repository.save(entity);
     }
 
-    private CustomerEntity findActiveOwned(String ownerId, UUID customerId) {
-        return repository.findByIdAndOwnerIdAndDeletedAtIsNull(customerId, requireOwner(ownerId))
+    private CustomerEntity findActiveOwned(UUID tenantId, UUID customerId) {
+        return repository.findByIdAndTenantIdAndDeletedAtIsNull(customerId, requireTenant(tenantId))
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
     }
 
-    private static String requireOwner(String ownerId) {
-        if (!StringUtils.hasText(ownerId)) {
-            throw new CustomerValidationException("Owner identity is required");
-        }
-        return ownerId.trim();
+    private static UUID requireTenant(UUID tenantId) {
+        return Objects.requireNonNull(tenantId, "Tenant identity is required");
+    }
+
+    private static UUID requireTenantMember(UUID tenantMemberId) {
+        return Objects.requireNonNull(tenantMemberId, "Tenant member identity is required");
     }
 
     private static void validate(CustomerChange change) {
