@@ -2,6 +2,7 @@ package com.quotr.customers.tenant;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quotr.customers.api.model.ErrorResponse;
+import com.quotr.customers.config.SecurityConfig;
 import com.quotr.tenant.generated.api.TenantsApi;
 import com.quotr.tenant.generated.model.TenantDTO;
 import jakarta.servlet.FilterChain;
@@ -48,6 +49,14 @@ public class TenantContextFilter extends OncePerRequestFilter {
             // /actuator/health, or an unauthenticated request Spring Security will reject
             // downstream) -- there is no bearer token to resolve a tenant with, and nothing
             // in this filter's own responsibility to enforce here either way.
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (authentication.getAuthorities().stream()
+                .anyMatch(authority -> SecurityConfig.SERVICE_AUTHORITY.equals(authority.getAuthority()))) {
+            // A service identity has no tenant of its own; service-only operations take the tenant
+            // from the path. The decision comes from the authenticated principal, never the path.
             filterChain.doFilter(request, response);
             return;
         }

@@ -11,7 +11,7 @@
 
     <groupId>com.quotr</groupId>
     <artifactId>quotr-customers-service</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <name>quotr-customers-service</name>
     <description>Quotr customers bounded-context backend service</description>
 
@@ -25,7 +25,7 @@
         <apicurio.registry.api.path>/apis/registry/v2</apicurio.registry.api.path>
         <apicurio.groupId>com.apprigger.quotr</apicurio.groupId>
         <contract.artifactId>quotr-customers-schema</contract.artifactId>
-        <contract.version>1.0.0</contract.version>
+        <contract.version>1.1.0</contract.version>
         <tenant.contract.artifactId>quotr-tenant-schema</tenant.contract.artifactId>
         <tenant.contract.version>0.2.0</tenant.contract.version>
         <contract.url>

@@ -31,6 +31,18 @@ Search is partial and case-insensitive over active owned customer name, email, a
 
 The existing authenticated `GET /api/v1/customers?q=...&page=...&size=...` contract is the Customer-side support point for quote worksite identity. A caller such as `quotr-quotes-service` must call this API with the end user's propagated JWT; the customers service then applies the same owner and soft-delete filtering as direct end-user calls. Results include each stable Customer `id` plus structured address fields, which is sufficient for quotes to match associated Customer identifiers and derive customer-backed quote address information without a customer-contract change or shared database access.
 
+## Service-only resources
+
+Version `1.1.0` of the contract adds one operation tagged `service-only`, which generates into `ServiceOnlyApi`:
+
+- `GET /api/v1/tenants/{tenantId}/customers/{customerId}` (`getCustomerByTenant`) returns the customer with the existing `Customer` schema. One query by tenant id and customer id excludes soft-deleted customers, so another tenant's customer, an unknown customer and a deleted customer all answer 404.
+
+The operation is reachable only by a backend service identity: the JWT must carry the claim `role` with the value `service` (see the quotr product ADR-0002). `SecurityConfig` maps that claim to the authority `ROLE_SERVICE` next to the existing `scope` mapping, and the operation is guarded with `@PreAuthorize("hasRole('SERVICE')")` on its controller method in `ServiceOnlyApiController`. A caller without the role, including a tenant user asking for their own tenant, receives 403; no token or an invalid token receives 401.
+
+A service caller has no tenant, so `TenantContextFilter` skips tenant resolution for a principal holding `ROLE_SERVICE` (decided from the authenticated principal, not from the request path). Ordinary end-user requests still resolve the tenant as before, and a service principal calling an ordinary operation fails because no tenant context exists.
+
+The role claim is only trusted because JWT signatures are verified. Never add an unverified or QA-only JWT decoder to this service. A new operation with the `service-only` tag must carry the same annotation: `ServiceOnlyApiSecurityIntegrationTest` fails when an implementing method does not.
+
 ## Readiness and health
 
 Actuator health endpoints are intentionally unauthenticated so platform probes can call them:
@@ -56,7 +68,7 @@ Maven properties are split so registry location and contract identity can be ove
 <apicurio.registry.api.path>/apis/registry/v2</apicurio.registry.api.path>
 <apicurio.groupId>com.apprigger.quotr</apicurio.groupId>
 <contract.artifactId>quotr-customers-schema</contract.artifactId>
-<contract.version>1.0.0</contract.version>
+<contract.version>1.1.0</contract.version>
 <contract.url>${apicurio.registry.url}${apicurio.registry.api.path}/groups/${apicurio.groupId}/artifacts/${contract.artifactId}/versions/${contract.version}</contract.url>
 ```
 
