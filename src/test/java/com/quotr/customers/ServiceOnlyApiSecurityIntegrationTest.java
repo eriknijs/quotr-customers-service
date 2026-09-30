@@ -36,6 +36,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -52,7 +53,8 @@ class ServiceOnlyApiSecurityIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("quotr_customers_service_only_test")
             .withUsername("quotr")
-            .withPassword("quotr");
+            .withPassword("quotr")
+            .waitingFor(Wait.forListeningPort());
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {

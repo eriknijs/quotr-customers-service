@@ -18,6 +18,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -34,7 +35,8 @@ class CustomerServiceIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("quotr_customers_test")
             .withUsername("quotr")
-            .withPassword("quotr");
+            .withPassword("quotr")
+            .waitingFor(Wait.forListeningPort());
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {
@@ -135,7 +137,7 @@ class CustomerServiceIntegrationTest {
         Customer emailMatch = service.create(TENANT_A, MEMBER_A, new CustomerChange("Email Match", "hello@contoso.example", "+31-000", null));
         Customer addressMatch = service.create(TENANT_A, MEMBER_A, new CustomerChange(
                 "Address Match", null, "+31-111", new Address("Canal Road 5", null, "1010 ZZ", "Utrecht", "NL")));
-        Customer phoneOnly = service.create(TENANT_A, MEMBER_A, new CustomerChange("Phone Only", null, "needle-phone", null));
+        Customer phoneOnly = service.create(TENANT_A, MEMBER_A, new CustomerChange("Phone Digits", null, "needle-phone", null));
 
         assertThat(service.search(TENANT_A, "wind")).extracting(Customer::id).containsExactly(nameMatch.id());
         assertThat(service.search(TENANT_A, "CONTOSO")).extracting(Customer::id).containsExactly(emailMatch.id());

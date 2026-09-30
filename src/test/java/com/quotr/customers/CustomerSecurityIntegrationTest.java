@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -34,7 +35,8 @@ class CustomerSecurityIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("quotr_customers_security_test")
             .withUsername("quotr")
-            .withPassword("quotr");
+            .withPassword("quotr")
+            .waitingFor(Wait.forListeningPort());
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {
