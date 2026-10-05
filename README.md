@@ -88,3 +88,8 @@ Example override:
 The repository includes a Dockerfile for the orchestrator/runtime packaging flow. Build tooling supplies the image name and tag; the Dockerfile is independent of artifact version and does not embed environment-specific configuration.
 
 When running the container, provide database and JWT settings through environment variables. The container exposes port `8080` by default and uses `GET /actuator/health/readiness` for its internal health check.
+
+## Tenant client
+
+The tenant of the caller is resolved with `GET /tenant` through a client generated from the published `quotr-tenant-schema` (`tenant.contract.version`, now `1.0.0`). Version `1.0.0` of the contract lists `NL` next to `DK` as a country of a tenant, so a company in the Netherlands is read like one in Denmark; the client of version `0.2.0` knew only `DK`, and every request of a Dutch company was answered `503 TENANT_SERVICE_UNAVAILABLE`. `TenantClientCountryTest` decodes the responses of the tenant service for a Dutch company, with an address that has only a country and with a complete one, and for a Danish company. Only the tenant and member identifiers are used; the country plays no part in this service.
+
