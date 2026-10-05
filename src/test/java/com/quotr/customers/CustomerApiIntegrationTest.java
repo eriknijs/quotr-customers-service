@@ -75,7 +75,7 @@ class CustomerApiIntegrationTest {
         // two different tenants, preserving this suite's existing isolation semantics.
         when(tenantsApi.getTenant()).thenAnswer(invocation -> {
             String subject = currentJwtSubject();
-            return new TenantDTO(UUID.fromString(subject))
+            return new TenantDTO(UUID.fromString(subject), "Europe/Copenhagen")
                     .tenantId(UUID.nameUUIDFromBytes(("tenant:" + subject).getBytes(StandardCharsets.UTF_8)));
         });
     }

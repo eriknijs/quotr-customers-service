@@ -96,7 +96,7 @@ class ServiceOnlyApiSecurityIntegrationTest {
             }
             throw new BadJwtException("invalid");
         });
-        when(tenantsApi.getTenant()).thenReturn(new TenantDTO(memberId).tenantId(tenantId));
+        when(tenantsApi.getTenant()).thenReturn(new TenantDTO(memberId, "Europe/Copenhagen").tenantId(tenantId));
 
         repository.deleteAll();
         customerId = save(tenantId, "Acme Ltd", false);
